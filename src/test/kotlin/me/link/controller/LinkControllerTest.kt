@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import me.link.dto.LinkRequest
 import me.link.entity.Link
 import me.link.exception.BadURLException
+import me.link.exception.KeyNotFoundException
 import me.link.service.LinkServiceImpl
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -14,16 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import org.springframework.web.ErrorResponse
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import org.mockito.Mockito.`when` as mockitoWhen
 
 @WebMvcTest
@@ -44,43 +41,17 @@ class LinkControllerTest {
         assertThat(service).isNotNull
     }
 
-    /*
-    @PostMapping
-    fun create(@Valid @RequestBody request: LinkRequest): ResponseEntity<Link> {
-        val link: Link = if (request.customKey.isNullOrBlank()) {
-            service.create(request.url)
-        } else {
-            service.create(request.url, request.customKey)
-        }
-        return ResponseEntity.ok(link)
-    }
-
-    @GetMapping("/{id}")
-    fun get(@PathVariable("id") key: String): RedirectView {
-        val link = service.getByKey(key)
-        return RedirectView(link.url)
-    }
-
-    @GetMapping("/{id}+")
-    fun info(@PathVariable("id") key: String): ResponseEntity<Link> {
-        val link = service.getByKey(key)
-        return ResponseEntity.ok(link)
-    }
-     */
-
     @Test
-    fun `given valid URL with custom key - when post url - then return Link with custom URL`() {
-        val id = 1L
+    fun `given valid URL - when post Link - then return Link`() {
         val key = "key"
         val url = "https://example.com"
-        val createdAt = LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 5, 30))
 
-        val request = LinkRequest(url, key)
-        val link = Link(id, key, url, createdAt)
+        val request = LinkRequest(url, null)
+        val link = Link(key = key, url = url)
 
         val json: String = jsonMapper.writeValueAsString(request)
 
-        mockitoWhen(service.create(url, key)).thenReturn(link)
+        mockitoWhen(service.create(url)).thenReturn(link)
 
         mockMvc.perform(
             post("/api/v1/shortener")
@@ -88,79 +59,122 @@ class LinkControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
         ).andExpectAll(
             status().isOk,
-            jsonPath("$.id").value(id),
             jsonPath("$.key").value(key),
             jsonPath("$.url").value(url),
-            jsonPath("$.createdAt").value(createdAt.toString())
+            jsonPath("$.createdAt").exists()
         )
-        verify(service, times(1)).create(url, key)
+        verify(service, times(1)).create(url)
     }
 
     @Test
-    fun `given invalid URL with custom key - when post url - then return ErrorResponse`() {
-        val id = 1L
-        val key = "key"
+    fun `given invalid URL - when post URL - then return Bad Request`() {
         val url = "https://example.com"
-        val createdAt = LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 5, 30))
+        val request = LinkRequest(url, null)
+        val requestJson: String = jsonMapper.writeValueAsString(request)
+        val exceptionMessage = "Invalid URL"
 
-        val request = LinkRequest(url, key)
-        val link = Link(id, key, url, createdAt)
-
-        val exception = BadURLException("Invalid URL")
-        val errorResponse = ErrorResponse.create(exception, HttpStatus.BAD_REQUEST, "Invalid URL")
-
-        val json: String = jsonMapper.writeValueAsString(request)
-
-        mockitoWhen(service.create(url, key)).thenThrow(BadURLException::class.java)
+        mockitoWhen(service.create(url)).thenThrow(BadURLException::class.java)
 
         mockMvc.perform(
             post("/api/v1/shortener")
-                .content(json)
+                .content(requestJson)
                 .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+            status().isBadRequest,
+            jsonPath("$.title").value(BAD_REQUEST.reasonPhrase),
+            jsonPath("$.status").value(BAD_REQUEST.value()),
+            jsonPath("$.detail").value(exceptionMessage)
         )
-            .andDo { println(it.resolvedException) }
-            .andExpect { assertTrue(it.resolvedException is BadURLException) }
-            .andExpectAll(
-                status().isBadRequest,
-                jsonPath("$.type").value(errorResponse.body.type),
-                jsonPath("$.title").value(errorResponse.body.title),
-                jsonPath("$.status").value(errorResponse.body.status),
-                jsonPath("$.detail").value(errorResponse.body.detail)
-            ).andExpect {
-                jsonPath("$.instance").value(it.request.requestURL)
-            }
-        verify(service, times(1)).create(url, key)
-    }
-
-    /*
-    {
-    "type": "about:blank",
-    "title": "Internal Server Error",
-    "status": 500,
-    "detail": "Sorry, something went wrong. Try again later",
-    "instance": "/api/v1/shortener"
-}
-     */
-
-    fun `given valid URL with invalid custom key - when post url - then return ErrorResponse`() {}
-
-    fun `given valid URL - when post url - then return Link`() {}
-    fun `given invalid URL - when post url - then return ErrorResponse`() {}
-
-    fun `given valid key - when get link by key - then return RedirectView`() {}
-    fun `given not existing key - when get link by key - then return ErrorResponse`() {}
-
-    fun `given valid key - when get info by key - then return Link`() {}
-    fun `given not existing key - when get info by key - then return ErrorResponse`() {
-        val key = "random"
-
+        verify(service, times(1)).create(url)
     }
 
     @Test
-    fun `given valid key - when get Link - then return link`() {
+    fun `given valid URL with valid custom key - when post Link - then return Link with custom key`() {
+        val key = "key"
+        val url = "https://example.com"
+        val request = LinkRequest(url, key)
+        val link = Link(key = key, url = url)
+        val requestJson: String = jsonMapper.writeValueAsString(request)
+
+        mockitoWhen(service.create(url, key)).thenReturn(link)
+
+        mockMvc.perform(
+            post("/api/v1/shortener")
+                .content(requestJson)
+                .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+            status().isOk,
+            jsonPath("$.key").value(key),
+            jsonPath("$.url").value(url),
+            jsonPath("$.createdAt").exists()
+        )
+        verify(service, times(1)).create(url, key)
+    }
+
+    @Test
+    fun `given valid URL with invalid custom key - when post Link - then return Bad Request`() {
+        val key = "?//key#//"
+        val url = "https://example.com"
+        val request = LinkRequest(url, key)
+        val requestJson: String = jsonMapper.writeValueAsString(request)
+        val exceptionMessage = "Key should contain only letters, numbers, `-` and `_`"
+
+        mockMvc.perform(
+            post("/api/v1/shortener")
+                .content(requestJson)
+                .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+            status().isBadRequest,
+            jsonPath("$.title").value(BAD_REQUEST.reasonPhrase),
+            jsonPath("$.status").value(BAD_REQUEST.value()),
+            jsonPath("$.detail").value(exceptionMessage)
+        )
+    }
+
+    @Test
+    fun `given invalid URL with valid custom key - when post Link - then return Bad Request`() {
+        val key = "key"
+        val url = "?//invalidURL#//.com"
+        val request = LinkRequest(url, key)
+        val requestJson: String = jsonMapper.writeValueAsString(request)
+        val exceptionMessage = "Must be a valid URL"
+
+        mockMvc.perform(
+            post("/api/v1/shortener")
+                .content(requestJson)
+                .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+            status().isBadRequest,
+            jsonPath("$.title").value(BAD_REQUEST.reasonPhrase),
+            jsonPath("$.status").value(BAD_REQUEST.value()),
+            jsonPath("$.detail").value(exceptionMessage)
+        )
+    }
+
+    @Test
+    fun `given invalid URL with invalid custom key - when post Link - then return Bad Request`() {
+        val key = "?//key#//"
+        val url = "?//invalidURL#//.com"
+        val request = LinkRequest(url, key)
+        val requestJson: String = jsonMapper.writeValueAsString(request)
+
+        mockMvc.perform(
+            post("/api/v1/shortener")
+                .content(requestJson)
+                .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+            status().isBadRequest,
+            jsonPath("$.title").value(BAD_REQUEST.reasonPhrase),
+            jsonPath("$.status").value(BAD_REQUEST.value()),
+            jsonPath("$.detail").exists()
+        )
+    }
+
+    @Test
+    fun `given existing key - when get Link by key - then return RedirectView`() {
         val key = "validKey"
         val url = "https://example.com"
-        val link = Link(1, key, url)
+        val link = Link(key = key, url = url)
 
         mockitoWhen(service.getByKey(key)).thenReturn(link)
 
@@ -170,110 +184,50 @@ class LinkControllerTest {
     }
 
     @Test
-    fun `given invalid key - when get Link - then throw URLNotFoundException`() {
-        val key = "invalidKey"
+    fun `given not existing key - when get Link by key - then return Not Found`() {
+        val key = "notExistingKey"
+        val exceptionMessage = "Link with key '$key' not found"
 
-        mockitoWhen(service.getByKey(key)).thenThrow(BadURLException::class.java)
+        mockitoWhen(service.getByKey(key)).thenThrow(KeyNotFoundException(exceptionMessage))
 
-        mockMvc.perform(get("/api/v1/shortener/$key"))
-            .andExpect(status().isNotFound)
+        mockMvc.perform(get("/api/v1/shortener/$key")).andExpectAll(
+            status().is4xxClientError,
+            status().isNotFound,
+            jsonPath("$.title").value(NOT_FOUND.reasonPhrase),
+            jsonPath("$.status").value(NOT_FOUND.value()),
+            jsonPath("$.detail").value(exceptionMessage)
+        )
     }
 
-
     @Test
-    fun `given valid key - when get Link info - then return link entity`() {
+    fun `given existing key - when get Link info - then return URL`() {
         val key = "validKey"
         val url = "https://example.com"
-        val createdAt = LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 5, 30))
-        val link = Link(1, key, url, createdAt)
+        val link = Link(key = key, url = url)
 
         mockitoWhen(service.getByKey(key)).thenReturn(link)
 
-        mockMvc.perform(get("/api/v1/shortener/$key+"))
-            .andExpectAll(
-                status().isOk,
-                jsonPath("$.id").value(1),
-                jsonPath("$.key").value(key),
-                jsonPath("$.url").value(url),
-                jsonPath("$.createdAt").value(createdAt.toString())
-            )
-    }
-
-    @Test
-    fun `given invalid key - when get Link info - then throw URLNotFoundException`() {
-        val key = "invalidKey"
-
-        mockitoWhen(service.getByKey(key)).thenThrow(BadURLException::class.java)
-
-        mockMvc.perform(get("/api/v1/shortener/$key+"))
-            .andExpect(status().isNotFound)
-    }
-
-    @Test
-    fun `given LinkRequest with valid url - when post Link - then create Link`() {
-        val id = 1L
-        val key = "AKB381"
-        val validUrl = "https://example.com"
-        val createdAt = LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 5, 30))
-
-        val request = LinkRequest(validUrl, null)
-        val link = Link(id, key, validUrl, createdAt)
-
-        val json: String = jsonMapper.writeValueAsString(request)
-
-        mockitoWhen(service.create(validUrl)).thenReturn(link)
-
-        mockMvc.perform(
-            post("/api/v1/shortener/")
-                .content(json)
-                .contentType(MediaType.APPLICATION_JSON)
-        ).andExpectAll(
+        mockMvc.perform(get("/api/v1/shortener/$key+")).andExpectAll(
             status().isOk,
-            jsonPath("$.id").value(id),
             jsonPath("$.key").value(key),
-            jsonPath("$.url").value(validUrl),
-            jsonPath("$.createdAt").value(createdAt.toString())
-        )
-
-    }
-
-    @Test
-    fun `given LinkRequest with invalid url - when post Link - then throw URLException`() {
-        val invalidUrl = "https://exam ple.com"
-
-        val request = LinkRequest(invalidUrl, null)
-
-        val json: String = jsonMapper.writeValueAsString(request)
-
-        mockitoWhen(service.create(invalidUrl)).thenThrow(BadURLException::class.java)
-
-        mockMvc.perform(
-            post("/api/v1/shortener/")
-                .content(json)
-                .contentType(MediaType.APPLICATION_JSON)
+            jsonPath("$.url").value(url),
+            jsonPath("$.createdAt").exists()
         )
     }
 
     @Test
-    fun `given LinkRequest with valid custom key - when post Link - then throw URLException`() {
+    fun `given not existing key - when get Link info - then return Not Found`() {
+        val key = "notExistingKey"
+        val exceptionMessage = "Link with key '$key' not found"
 
-    }
+        mockitoWhen(service.getByKey(key)).thenThrow(KeyNotFoundException(exceptionMessage))
 
-    @Test
-    fun `given LinkRequest with invalid custom key - when post Link - then throw URLException`() {
-        val url = "https://example.com"
-        val invalidCustomKey = "super-key:)"
-
-        val request = LinkRequest(url, invalidCustomKey)
-
-        val json: String = jsonMapper.writeValueAsString(request)
-
-        mockitoWhen(service.create(url, invalidCustomKey)).thenThrow(BadURLException::class.java)
-
-        mockMvc.perform(
-            post("/api/v1/shortener/")
-                .content(json)
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(get("/api/v1/shortener/$key+")).andExpectAll(
+            status().is4xxClientError,
+            status().isNotFound,
+            jsonPath("$.title").value(NOT_FOUND.reasonPhrase),
+            jsonPath("$.status").value(NOT_FOUND.value()),
+            jsonPath("$.detail").value(exceptionMessage)
         )
     }
 

@@ -26,6 +26,7 @@ repositories {
 }
 
 dependencies {
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -33,9 +34,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.liquibase:liquibase-core")
     implementation("org.postgresql:postgresql")
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:postgresql")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
@@ -48,4 +51,5 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs = listOf("-XX:+EnableDynamicAgentLoading", "-Djdk.instrument.traceUsage")
 }

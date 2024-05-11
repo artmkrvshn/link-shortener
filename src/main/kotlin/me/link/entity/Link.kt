@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(name = "links")
-class Link(
+data class Link(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

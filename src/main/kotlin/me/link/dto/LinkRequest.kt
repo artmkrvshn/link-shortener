@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.hibernate.validator.constraints.URL
 
-class LinkRequest(
+data class LinkRequest(
 
     @field:URL(message = "Must be a valid URL")
     @field:NotNull(message = "URL is mandatory")

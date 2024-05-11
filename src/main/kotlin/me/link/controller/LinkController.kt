@@ -2,6 +2,7 @@ package me.link.controller
 
 import jakarta.validation.Valid
 import me.link.dto.LinkRequest
+import me.link.dto.LinkResponse
 import me.link.entity.Link
 import me.link.service.LinkServiceImpl
 import org.springframework.http.ResponseEntity
@@ -13,13 +14,16 @@ import org.springframework.web.servlet.view.RedirectView
 class LinkController(private val service: LinkServiceImpl) {
 
     @PostMapping
-    fun create(@Valid @RequestBody request: LinkRequest): ResponseEntity<Link> {
+    fun create(
+        @Valid @RequestBody request: LinkRequest
+    ): ResponseEntity<LinkResponse> {
         val link: Link = if (request.customKey.isNullOrBlank()) {
             service.create(request.url)
         } else {
             service.create(request.url, request.customKey)
         }
-        return ResponseEntity.ok(link)
+        val response = LinkResponse(link)
+        return ResponseEntity.ok(response)
     }
 
     @GetMapping("/{id}")
@@ -29,8 +33,9 @@ class LinkController(private val service: LinkServiceImpl) {
     }
 
     @GetMapping("/{id}+")
-    fun info(@PathVariable("id") key: String): ResponseEntity<Link> {
+    fun info(@PathVariable("id") key: String): ResponseEntity<LinkResponse> {
         val link = service.getByKey(key)
-        return ResponseEntity.ok(link)
+        val response = LinkResponse(link)
+        return ResponseEntity.ok(response)
     }
 }
