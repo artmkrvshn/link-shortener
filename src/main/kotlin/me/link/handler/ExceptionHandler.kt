@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
+
 @RestControllerAdvice
 class ExceptionHandler {
 
@@ -18,32 +19,31 @@ class ExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleMethodArgumentNotValidException(ex: MethodArgumentNotValidException): ErrorResponse {
-        log.warn(ex.message)
+        log.warn("Validation failed: ${ex.bindingResult.allErrors}")
         return ErrorResponse.create(ex, BAD_REQUEST, ex.fieldError?.defaultMessage ?: "Invalid argument")
     }
 
     @ExceptionHandler(BadURLException::class)
     fun handleBadURLException(ex: BadURLException): ErrorResponse {
-        log.warn(ex.message)
+        log.warn("Bad URL: ${ex.message}")
         return ErrorResponse.create(ex, BAD_REQUEST, ex.message ?: "Invalid URL")
     }
 
     @ExceptionHandler(KeyAlreadyExistsException::class)
     fun handleKeyAlreadyExistsException(ex: KeyAlreadyExistsException): ErrorResponse {
-        log.info(ex.message)
+        log.info("Key already exists: ${ex.message}")
         return ErrorResponse.create(ex, CONFLICT, ex.message ?: "Key already exists")
     }
 
     @ExceptionHandler(KeyNotFoundException::class)
     fun handleKeyNotFoundException(ex: KeyNotFoundException): ErrorResponse {
-        log.info(ex.message)
+        log.info("Key not found: ${ex.message}")
         return ErrorResponse.create(ex, NOT_FOUND, ex.message ?: "Key wasn't found")
     }
 
     @ExceptionHandler(PSQLException::class)
     fun handlePSQLException(ex: PSQLException): ErrorResponse {
-        log.error(ex.message)
+        log.error("Database error occurred: ${ex.message}")
         return ErrorResponse.create(ex, INTERNAL_SERVER_ERROR, "Sorry, something went wrong. Try again later")
     }
-
 }
