@@ -37,19 +37,12 @@ cd link-shortener
 ```
 
 ### Option 1: Using Gradle Wrapper
-#### Windows
 ```
-gradlew bootRun
-```
-
-#### Linux
-```
-chmod +x gradlew
-./gradlew bootRun
+Windows: gradlew bootRun
+Linux: ./gradlew bootRun
 ```
 
 ### Option 2: Using Dockerfile
-
 ```
 docker compose up -d
 docker build -t link-shortener .
