@@ -28,7 +28,7 @@ class LinkServiceImpl(
 
     override fun create(url: String, key: String): Link {
         if (repository.existsByKey(key)) {
-            throw KeyAlreadyExistsException("Key $key already exists")
+            throw KeyAlreadyExistsException("Key '$key' already exists")
         }
         return saveUrl(url, key)
     }
