@@ -45,6 +45,7 @@ Linux: ./gradlew bootRun
 ### Option 2: Using Dockerfile
 ```
 docker compose up -d
+chmod +x gradlew
 docker build -t link-shortener .
 docker run --name link-shortener -p 8080:8080 --network=link-shortener_default --rm link-shortener
 ```
