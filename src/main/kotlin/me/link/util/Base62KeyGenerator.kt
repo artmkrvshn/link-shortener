@@ -11,6 +11,7 @@ private val rnd = SecureRandom()
 class Base62KeyGenerator : Generator<String> {
 
     override fun generate(length: Int): String {
+        if (length < 0) throw IllegalArgumentException("Length must not be negative")
         val sb = StringBuilder(length)
         for (i in 0 until length) sb.append(DIGITS[rnd.nextInt(LENGTH)])
         return sb.toString()

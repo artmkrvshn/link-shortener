@@ -21,7 +21,9 @@ class URLValidator {
         try {
             val httpConnection = URI.create(url.trim()).toURL().openConnection() as HttpURLConnection
             return HttpStatus.valueOf(httpConnection.responseCode)
-        } catch (e: IOException) {
+        }  catch (e: IOException) {
+            throw BadURLException("Invalid URL. ${e.message}", e)
+        } catch (e: IllegalArgumentException) {
             throw BadURLException("Invalid URL. ${e.message}", e)
         }
     }
