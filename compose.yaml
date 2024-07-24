@@ -1,7 +1,19 @@
 services:
+  link-shortener-api:
+    container_name: link-shortener-api
+    image: artmkrvshn/link-shortener:0.0.1-SNAPSHOT
+    environment:
+      spring.datasource.url: jdbc:postgresql://postgres:5432/link-shortener
+    ports:
+      - 8080:8080
+    networks:
+      - link-shortener-network
+    depends_on:
+      - postgres
+
   postgres:
-    image: postgres:16.2-alpine3.19
     container_name: link-shortener-postgres
+    image: postgres:16.3
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
@@ -10,6 +22,8 @@ services:
       - 5432:5432
     volumes:
       - postgres:/var/lib/postgresql/data
+    networks:
+      - link-shortener-network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 0.5s
@@ -17,3 +31,6 @@ services:
 
 volumes:
   postgres:
+
+networks:
+  link-shortener-network:
