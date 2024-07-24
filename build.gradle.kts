@@ -56,7 +56,8 @@ tasks.withType<Test> {
 
 
 jib {
-    to.image = "docker.io/artmkrvshn/${project.name}:${project.version}"
+    to.image = "ghcr.io/artmkrvshn/${project.name}:${project.version}"
+//    to.image = "docker.io/artmkrvshn/${project.name}:${project.version}"
     from.image = "eclipse-temurin:21-jre"
     container.creationTime = "USE_CURRENT_TIMESTAMP"
 }
