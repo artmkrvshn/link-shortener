@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("org.springframework.boot") version "3.2.5"
     id("io.spring.dependency-management") version "1.1.4"
+    id("com.google.cloud.tools.jib") version "3.3.2"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
     kotlin("plugin.jpa") version "1.9.23"
@@ -26,7 +27,6 @@ repositories {
 }
 
 dependencies {
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -52,4 +52,11 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
     jvmArgs = listOf("-XX:+EnableDynamicAgentLoading", "-Djdk.instrument.traceUsage")
+}
+
+
+jib {
+    to.image = "docker.io/artmkrvshn/${project.name}:${project.version}"
+    from.image = "eclipse-temurin:21-jre"
+    container.creationTime = "USE_CURRENT_TIMESTAMP"
 }
