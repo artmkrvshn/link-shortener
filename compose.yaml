@@ -1,7 +1,7 @@
 services:
   link-shortener-api:
     container_name: link-shortener-api
-    image: artmkrvshn/link-shortener:0.0.1-SNAPSHOT
+    image: ghcr.io/artmkrvshn/link-shortener:0.0.1-SNAPSHOT
     environment:
       spring.datasource.url: jdbc:postgresql://postgres:5432/link-shortener
     ports:
