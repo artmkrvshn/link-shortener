@@ -34,19 +34,7 @@ To run the application, follow these steps:
 ```
 git clone https://github.com/artmkrvshn/link-shortener.git
 cd link-shortener
-```
-
-### Option 1: Using Gradle Wrapper
-```
-Windows: gradlew bootRun
-Linux: ./gradlew bootRun
-```
-
-### Option 2: Using Dockerfile
-```
-docker compose up -d
-docker build -t link-shortener .
-docker run --name link-shortener -p 8080:8080 --network=link-shortener_default --rm link-shortener
+docker compose up
 ```
 
 Once the application is running, you can access the API documentation via Swagger UI by navigating
